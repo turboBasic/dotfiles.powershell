@@ -14,7 +14,7 @@ Param(
 	[Switch] $NoTestDiff
 )
 
-
+$toolsDir = "$BuildRoot\.buildTools"
 
 # Ensure script works in the most strict mode
 Set-StrictMode -version Latest
@@ -32,7 +32,7 @@ task Build {
 task Markdown {
 
 	function Convert-Markdown($Name) {
-        pandoc.exe --standalone --from=gfm "--output=$Name.html" "--metadata=pagetitle=$Name" "$Name.md"
+        & $toolsDir\pandoc.exe --standalone --from=gfm "--output=$Name.html" "--metadata=pagetitle=$Name" "$Name.md"
     }
     
 	exec { Convert-Markdown README }
@@ -44,8 +44,7 @@ task Markdown {
 task Clean {
     "Inside 'Clean' task" | Write-Verbose
     
-    Get-Item z, Tests\z, Tests\z.*, README.htm, Release-Notes.htm, dotfiles.powershell.*.nupkg -errorAction 0 |
-	Remove-Item -force -recurse
+    Get-Item z, Tests\z, Tests\z.*, $toolsDir, README.html, Release-Notes.html, dotfiles.powershell.*.nupkg -errorAction SilentlyContinue | Remove-Item -force -recurse
 }
 
 
@@ -63,13 +62,9 @@ task GitStatus -If (Test-Path .git) {
 #     Invoke-Expression -command "&{ $( Invoke-WebRequest -uri https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } Helps"
 # or even shorter: iex "&{ $( iwr https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } Helps"
 task Help {
-
-    if (-not (Test-Path .\Helps\Helps.ps1)) {
-        Invoke-Expression "&{ $(Invoke-WebRequest -uri https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1) } Helps"
-    }
-	. .\Helps\Helps.ps1
-	Convert-Helps dotfilesPowershell-Help.ps1 dotfilesPowershell-Help.xml
-    
+	. $toolsDir\Helps\Helps.ps1
+    . .\dotfiles.powershell\Invoke-DefaultProfile.ps1
+	Convert-Helps dotfilesPowershell-Help.ps1 .\dotfiles.powershell\dotfilesPowershell-Help.xml
 }
 
 
@@ -87,6 +82,7 @@ task Version {
         } 
     }
     
+    "Version: $Version" | Write-Verbose
 	assert $Version
     
 }
@@ -102,9 +98,8 @@ task Module     Version, Markdown, Help, {
 
 	# copy files
 	Copy-Item -destination $dir `
-        dotfilesPowershell-Help.xml,
         README.html,
-        LICENSE.txt,
+        LICENSE,
         Release-Notes.html
 
 	# make manifest
@@ -172,7 +167,7 @@ dotfiles.powershell is set of Cmdlets for management of Powershell profile and r
 "@
 
 	# package
-	exec { NuGet pack z\Package.nuspec -noDefaultExcludes -noPackageAnalysis }
+	exec { NuGet.exe pack z\Package.nuspec -noDefaultExcludes -noPackageAnalysis }
     
 }
 
@@ -202,9 +197,9 @@ task PushNuGet     NuGet,
 #
 # Requires Assert-SameFile.ps1  ( https://github.com/nightroman/PowerShelf/blob/master/Assert-SameFile.ps1 )
 # Download all PowerShelf tools:
-#       iex "&{ $( iwr https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } PowerShelf"
+#       iex "&{ $( iwr https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } PowerShelf"; mkdir .\.buildTools; Move-Item .\PowerShelf .\.buildTools\
 # or just Assert-SameFile.ps1:
-#       New-Item -path .\PowerShelf\Assert-SameFile.ps1 -itemType File -value (iwr https://raw.githubusercontent.com/nightroman/PowerShelf/master/Assert-SameFile.ps1) -force
+#       New-Item -path .\.buildTools\PowerShelf\Assert-SameFile.ps1 -itemType File -value (iwr https://raw.githubusercontent.com/nightroman/PowerShelf/master/Assert-SameFile.ps1) -force
 task Test3 {
 
 	# invoke tests, get output and result
@@ -220,7 +215,7 @@ task Test3 {
 	[System.IO.File]::WriteAllText( $resultPath, $output, [System.Text.Encoding]::UTF8 )
 
 	# compare outputs
-	.\PowerShelf\Assert-SameFile.ps1 $samplePath $resultPath $env:MERGE
+	& $toolsDir\PowerShelf\Assert-SameFile.ps1 $samplePath $resultPath $env:MERGE
 	Remove-Item $resultPath
     
 }

@@ -1,43 +1,48 @@
-﻿@{Version=0.3.0}|Out-Null
-#~~~Requires -Modules Environment
+﻿#Requires -version 3
 
+
+# Synopsis: user profile tasks which should not affect Global namespace
 function Main {
-<# user profile tasks which should not affect Global namespace #>
 
-  [CmdletBinding()] [OutputType([void])] 
-  PARAM()
+    # @TODO( Turn some Environment Variables On/Off using Hashtable or Array
+    # $env.Blacklist = @( 'nodePath', 'nvm_Home' )
 
-  # @TODO( Turn some Environment Variables On/Off using Hashtable or Array
-  # $env.Blacklist = @( 'nodePath', 'nvm_Home' )
+    try { 
+      $null = Get-Command pshazz -errorAction Stop
+      pshazz init 'mao' 
+    } 
+    catch { }
+    
+    #region constants
+    #endregion
 
-  #region constants
-  #endregion
-
-  Write-Host $psVersionTable.psVersion.ToString()
-  Write-Host ($__messages.welcome -f $profile)
 }
 
 
-#region Bootstrap
 
-  $__includes = 
-      "$psScriptRoot/profile/*.ps1", 
-      "$psScriptRoot/profile/console/*.ps1", 
-      "$psScriptRoot/profile/_international/*.ps1"
 
-  . "$psScriptRoot/profile/__start/__start.ps1"
+function Bootstrap {
 
-#endregion
+    $global:__profileHistory += $psCommandPath
+
+}
+
+
 
 
 #region Execution
 
-
-  Main                                                            
-                                                            
+    # this will effectively unwrap Bootstrap() and Main() and execute them in Global scope
+    . ${FUNCTION:Bootstrap}    
+    . ${FUNCTION:Main}                                                              
 
 #endregion
 
-Import-Module Posh-Git -errorAction SilentlyContinue
 
-. "$psScriptRoot/profile/__finish/__finish.ps1"
+
+
+#region Cleanup
+
+    Remove-Item FUNCTION:\Bootstrap, FUNCTION:\Main
+
+#endregion

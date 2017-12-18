@@ -11,29 +11,34 @@ Builds project and properly deploys its artifacts
 
 # Build script parameters are standard parameters
 Param(
-	[Switch]$NoTestDiff
+	[Switch] $NoTestDiff
 )
 
 
 
 # Ensure script works in the most strict mode
-Set-StrictMode -Version Latest
+Set-StrictMode -version Latest
 
 
-# Synopsis: Build the project.
+# Synopsis: Build the project
 task Build {
     "Inside 'Build' task" | Write-Verbose
     
     $True
 }
 
-# Synopsis: Convert markdown files to HTML.
-# <http://johnmacfarlane.net/pandoc/>
+
+# Synopsis: Convert markdown files to HTML using pandoc ( <http://johnmacfarlane.net/pandoc/> )
 task Markdown {
-	function Convert-Markdown($Name) {pandoc.exe --standalone --from=gfm "--output=$Name.htm" "--metadata=pagetitle=$Name" "$Name.md"}
+
+	function Convert-Markdown($Name) {
+        pandoc.exe --standalone --from=gfm "--output=$Name.html" "--metadata=pagetitle=$Name" "$Name.md"
+    }
+    
 	exec { Convert-Markdown README }
 	exec { Convert-Markdown Release-Notes }
 }
+
 
 # Synopsis: Remove generated and temp files
 task Clean {
@@ -43,6 +48,7 @@ task Clean {
 	Remove-Item -force -recurse
 }
 
+
 # Synopsis: Warn about not empty git status if .git exists
 task GitStatus -If (Test-Path .git) {
 	$status = exec { git status -s }
@@ -51,74 +57,90 @@ task GitStatus -If (Test-Path .git) {
 	}
 }
 
-# Synopsis: Build the PowerShell help file (<https://github.com/nightroman/Helps>)
-# To get the tool execute the following from the project's root:  Invoke-Expression "& {$((New-Object Net.WebClient).DownloadString('https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1'))} Helps"
+
+# Synopsis: Build the PowerShell help file using Helps tool ( <https://github.com/nightroman/Helps> )
+# To get the tool execute the following from the project's root:  
+#     Invoke-Expression -command "&{ $( Invoke-WebRequest -uri https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } Helps"
+# or even shorter: iex "&{ $( iwr https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } Helps"
 task Help {
+
     if (-not (Test-Path .\Helps\Helps.ps1)) {
-        Invoke-Expression "& {$((New-Object Net.WebClient).DownloadString('https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1'))} Helps"
+        Invoke-Expression "&{ $(Invoke-WebRequest -uri https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1) } Helps"
     }
 	. .\Helps\Helps.ps1
 	Convert-Helps dotfilesPowershell-Help.ps1 dotfilesPowershell-Help.xml
+    
 }
+
 
 # Synopsis: Set $script:Version
 task Version {
 
 	# get the version from Release-Notes
-	($script:Version = .{ 
-        switch -Regex -File Release-Notes.md 
+    # finds headers beginning with "v1.2.3" pattern
+	$script:Version = .{ 
+        switch -regex -file Release-Notes.md 
         {
-            '##\s+v(\d+\.\d+\.\d+)'  { 
+            '(?x) \#\# \s+ v( \d+ \. \d+ \. \d+ )'  { 
                 return $Matches[1] 
             }
         } 
-    })
+    }
     
 	assert $Version
     
 }
 
+
 # Synopsis: Make the module folder
 task Module     Version, Markdown, Help, {
-	# mirror the module folder
+
+	# mirror the module folder in temporary directory "z"
 	Remove-Item [z] -force -recurse
 	$dir = "$BuildRoot\z\dotfiles.powershell"
-	exec {$null = robocopy.exe dotfiles.powershell $dir /mir} 1
+	exec { $null = robocopy.exe dotfiles.powershell $dir /mir } 1
 
 	# copy files
 	Copy-Item -destination $dir `
         dotfilesPowershell-Help.xml,
-        README.htm,
+        README.html,
         LICENSE.txt,
-        Release-Notes.htm
+        Release-Notes.html
 
 	# make manifest
 	Set-Content "$dir\dotfiles.powershell.psd1" @"
 @{
-	ModuleVersion = '$Version'
-	ModuleToProcess = 'dotfiles.powershell.psm1'
-	GUID = '6083db24-2b5e-4895-818d-cad778bbe76b'
-	Author = 'Andriy Melnyk'
-	CompanyName = 'Cargonautica'
-	Copyright = '(c) 2017 Andriy Melnyk'
-	Description = 'dotfiles (profile & custom modules) for Powershell'
+	ModuleVersion =     '$Version'
+	ModuleToProcess =   'dotfiles.powershell.psm1'
+	GUID =              '6083db24-2b5e-4895-818d-cad778bbe76b'
+    
+	Author =            'Andriy Melnyk'
+	CompanyName =       'Cargonautica'
+	Copyright =         '(c) 2017 Andriy Melnyk'
+    
+	Description =       'dotfiles (profile & custom modules) for Powershell'
+    
 	PowerShellVersion = '3.0'
-	AliasesToExport = '' #'Invoke-Build', 'Build-Checkpoint', 'Build-Parallel'
+	AliasesToExport =   ''
+    
 	PrivateData = @{
 		PSData = @{
-			Tags = 'Profile', 'dotfiles'
-			ProjectUri = 'https://github.com/turboBasic/dotfiles.powershell'
-			LicenseUri = 'https://github.com/turboBasic/dotfiles.powershell/blob/master/LICENSE'
-			IconUri = 'https://gist.githubusercontent.com/turboBasic/9dfd228781a46c7b7076ec56bc40d5ab/raw/03942052ba28c4dc483efcd0ebf4bfc6809ed0d0/hexagram3D.png'
+			Tags =         'profile', 'dotfiles'
+			ProjectUri =   'https://github.com/turboBasic/dotfiles.powershell'
+			LicenseUri =   'https://github.com/turboBasic/dotfiles.powershell/blob/master/LICENSE'
+			IconUri =      'https://gist.githubusercontent.com/turboBasic/9dfd228781a46c7b7076ec56bc40d5ab/raw/03942052ba28c4dc483efcd0ebf4bfc6809ed0d0/hexagram3D.png'
 			ReleaseNotes = 'https://github.com/turboBasic/dotfiles.powershell/blob/master/Release-Notes.md'
 		}
 	}
 }
 "@
+
 }
+
 
 # Synopsis: Make the NuGet package
 task NuGet      Module, {
+
 	# rename the folder
 	Rename-Item z\dotfiles.powershell tools
 
@@ -142,7 +164,7 @@ dotfiles.powershell is set of Cmdlets for management of Powershell profile and r
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<summary>$text</summary>
 		<description>$text</description>
-		<tags>PowerShell profile dotfiles</tags>
+		<tags>Powershell profile dotfiles</tags>
 		<releaseNotes>https://github.com/turboBasic/dotfiles.powershell/blob/master/Release-Notes.md</releaseNotes>
 		<developmentDependency>true</developmentDependency>
 	</metadata>
@@ -151,53 +173,69 @@ dotfiles.powershell is set of Cmdlets for management of Powershell profile and r
 
 	# package
 	exec { NuGet pack z\Package.nuspec -noDefaultExcludes -noPackageAnalysis }
+    
 }
+
 
 # Synopsis: Push with a version tag
 task PushRelease    Version, {
+
 	$changes = exec { git status --short }
-	assert (!$changes) "Please, commit changes."
+	assert (-not $changes) "Please, commit changes"
 
 	exec { git push }
 	exec { git tag -a "v$Version" -m "v$Version" }
 	exec { git push origin "v$Version" }
+    
 }
 
+
 # Synopsis: Push NuGet package
-task PushNuGet      NuGet, {
-	exec { NuGet push "dotfiles.powershell.$Version.nupkg" -source nuget.org }
-},
-Clean
+task PushNuGet     NuGet, 
+    {
+        exec { NuGet.exe push "dotfiles.powershell.$Version.nupkg" -source nuget.org }
+    },
+    Clean
 
 
 # Synopsis: Test and check expected output
-# Requires PowerShelf/Assert-SameFile.ps1
+#
+# Requires Assert-SameFile.ps1  ( https://github.com/nightroman/PowerShelf/blob/master/Assert-SameFile.ps1 )
+# Download all PowerShelf tools:
+#       iex "&{ $( iwr https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1 ) } PowerShelf"
+# or just Assert-SameFile.ps1:
+#       New-Item -path .\PowerShelf\Assert-SameFile.ps1 -itemType File -value (iwr https://raw.githubusercontent.com/nightroman/PowerShelf/master/Assert-SameFile.ps1) -force
 task Test3 {
+
 	# invoke tests, get output and result
-	$output = Invoke-Build . Tests\.build.ps1 -Result result -Summary | Out-String -Width:200
-	if ($NoTestDiff) {return}
+	$output = Invoke-Build . Tests\.build.ps1 -result Result -summary | Out-String -width 200
+	if ($NoTestDiff) {
+        return
+    }
 
 	# process and save the output
 	$resultPath = "$BuildRoot\Invoke-Build-Test.log"
 	$samplePath = "$HOME\data\Invoke-Build-Test.$($PSVersionTable.PSVersion.Major).log"
 	$output = $output -replace '\d\d:\d\d:\d\d(?:\.\d+)?( )? *', '00:00:00.0000000$1'
-	[System.IO.File]::WriteAllText($resultPath, $output, [System.Text.Encoding]::UTF8)
+	[System.IO.File]::WriteAllText( $resultPath, $output, [System.Text.Encoding]::UTF8 )
 
 	# compare outputs
-	Assert-SameFile $samplePath $resultPath $env:MERGE
+	.\PowerShelf\Assert-SameFile.ps1 $samplePath $resultPath $env:MERGE
 	Remove-Item $resultPath
+    
 }
+
 
 # Synopsis: Test with PowerShell v6
-task Test6 -If $env:powershell6 {
-	$diff = if ($NoTestDiff) {'-NoTestDiff'}
-	exec {& $env:powershell6 -NoProfile -Command Invoke-Build Test3 $diff}
+task Test6      -If $env:powershell6 {
+	$diff = if ($NoTestDiff) { '-NoTestDiff' }
+	exec { & $env:powershell6 -noProfile -command Invoke-Build Test3 $diff }
 }
 
-# Synopsis: Test v3 and v6
-task Test Test3, Test6
 
+# Synopsis: Test v3 and v6
+task Test       Test3, Test6
 
 
 # Synopsis: Build and clean
-task . Test, Clean
+task .          Test, Clean

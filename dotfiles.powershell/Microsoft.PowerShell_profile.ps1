@@ -1,48 +1,31 @@
-﻿#Requires -version 3
+﻿#Requires -Version 5
 
-
-# Synopsis: user profile tasks which should not affect Global namespace
-function Main {
-
-    # @TODO( Turn some Environment Variables On/Off using Hashtable or Array
-    # $env.Blacklist = @( 'nodePath', 'nvm_Home' )
-
-    try { 
-      $null = Get-Command pshazz -errorAction Stop
-      pshazz init 'mao' 
-    } 
-    catch { }
-    
-    #region constants
-    #endregion
-
-}
+# Profile name              Location
+# ------------              --------
+# CurrentUserConsoleHost    $Home\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
 
 
 
 
-function Bootstrap {
+# Initialization code
 
-    $global:__profileHistory += $psCommandPath
+    # Keep track of all profile scripts launched by Powershell during session initialization
+        $global:profiles += , $psCommandPath
 
-}
+    # psHazz
+        try {
+            $null = Get-Command psHazz -errorAction Stop
+            pshazz init 'mao'
+        }
+        catch { }
 
+    # Powershell window title
+    $host.UI.RawUI.WindowTitle += "   |   $($host.Name)"
 
-
-
-#region Execution
-
-    # this will effectively unwrap Bootstrap() and Main() and execute them in Global scope
-    . ${FUNCTION:Bootstrap}    
-    . ${FUNCTION:Main}                                                              
-
-#endregion
 
 
 
 
 #region Cleanup
-
-    Remove-Item FUNCTION:\Bootstrap, FUNCTION:\Main
 
 #endregion

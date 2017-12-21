@@ -2,7 +2,7 @@
 
 # Profile name              Location
 # ------------              --------
-# CurrentUserAllHosts       $Home\Documents\WindowsPowerShell\profile.ps1
+# AllUsersAllHosts          $psHome\profile.ps1
 
 
 
@@ -23,7 +23,7 @@
 
 
     # Powershell window title
-        $host.UI.RawUI.WindowTitle += "   |   ${ENV:UserName}"
+        $host.UI.RawUI.WindowTitle += "   |   $( $psVersionTable.psVersion.ToString() )"
 
     # @TODO( Turn some Environment Variables On/Off using Hashtable or Array
     # $env.Blacklist = @( 'nodePath', 'nvm_Home' )
@@ -34,3 +34,4 @@
 #region Cleanup
 
 #endregion
+

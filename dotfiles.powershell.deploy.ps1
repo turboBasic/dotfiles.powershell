@@ -2,7 +2,7 @@
 #
 # Name                   Definition                                                             Expanded path
 # ----                   ----------                                                             -------------
-# AllUsersAllHosts       $PsHome\Profile.ps1                                                    C:\Windows\System32\WindowsPowerShell\v1.0\profile.ps1
+# AllUsersAllHosts       $PsHome\profile.ps1                                                    C:\Windows\System32\WindowsPowerShell\v1.0\profile.ps1
 # AllUsersCurrentHost    $PsHome\Microsoft.PowerShell_profile.ps1                               C:\Windows\System32\WindowsPowerShell\v1.0\Microsoft.PowerShell_profile.ps1
 #                        $PsHome\Microsoft.PowerShellISE_profile.ps1                            C:\Windows\System32\WindowsPowerShell\v1.0\Microsoft.PowerShellISE_profile.ps1
 #
@@ -11,17 +11,23 @@
 #                        $Home\Documents\WindowsPowerShell\Microsoft.PowerShellISE_profile.ps1  C:\Users\me\Documents\WindowsPowerShell\Microsoft.PowerShellISE_profile.ps1
 
 
+$script:Settings =     & .\dotfiles.powershell.settings.ps1
+$script:artifactsDir = $Settings.artifactsDir
+
 Deploy Profiles {
     By Filesystem {
-        FromSource  dotfiles.powershell\profile
-        To          $Home\Documents\WindowsPowerShell\profile
-        WithOptions @{
-            Mirror = $True
-        }
+        FromSource  $artifactsDir\profile.ps1,
+                    $artifactsDir\Microsoft.PowerShell_profile.ps1,
+                    $artifactsDir\Microsoft.PowerShellISE_profile.ps1
+        To          ${Home}\Documents\WindowsPowerShell
+        Tagged      CurrentUser
     }
 
-    By Filesystem Files {
-        FromSource  dotfiles.powershell\profile.ps1, dotfiles.powershell\Microsoft.PowerShell_profile.ps1, dotfiles.powershell\dotfilesPowershell-Help.xml
-        To          $Home\Documents\WindowsPowerShell
+    By Filesystem AllUsers {
+        FromSource  artifacts\allUsers\profile.ps1,
+                    artifacts\allUsers\Microsoft.PowerShell_profile.ps1,
+                    artifacts\allUsers\Microsoft.PowerShellISE_profile.ps1
+        To          ${psHome}
+        Tagged      AllUsers
     }
 }

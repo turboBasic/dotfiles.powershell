@@ -1,3 +1,4 @@
+# Release notes
 
 ## v0.1.2
 

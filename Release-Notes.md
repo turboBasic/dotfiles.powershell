@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.1.4
+
+Bug fix: All Users profiles were not deploying correctly.
+Bug fix: Build artifacts were not cleared correctly between builds
+New:     Aliases added via aliases.ps1:  gmnav
+New:     User functions added: Get-ModuleNounsAndVerbs, cinsty, clists
+
 ## v0.1.3
 
 Change profile scripts directory structure;

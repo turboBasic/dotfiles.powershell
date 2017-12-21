@@ -39,8 +39,8 @@
 # Synopsis: Creates artifacts directory and copies profile templates there
     task CopyArtifacts  {
 
-        mkdir $artifactsDir -errorAction SilentlyContinue
-        mkdir $artifactsDir\allUsers -errorAction SilentlyContinue
+        $Null = mkdir $artifactsDir -errorAction SilentlyContinue
+        $Null = mkdir $artifactsDir\allUsers -errorAction SilentlyContinue
 
         Copy-Item $buildRoot\$moduleName\profile.ps1 $artifactsDir
         Copy-Item $buildRoot\$moduleName\Microsoft.Powershell_profile.ps1 $artifactsDir
@@ -78,8 +78,8 @@
 
 # Synopsis: Remove generated and temp files
 	task Clean {
-		Get-Item z, Tests\z, Tests\z.*, $toolsDir, $buildRoot\artifacts, README.html, Release-Notes.html, dotfiles.powershell.*.nupkg -errorAction SilentlyContinue |
-				Remove-Item -force -recurse
+		Get-Item z, Tests\z, Tests\z.*, $toolsDir, $artifactsDir, README.html, Release-Notes.html, dotfiles.powershell.*.nupkg -errorAction SilentlyContinue |
+                Remove-Item -force -recurse
 	}
 #
 
@@ -282,6 +282,6 @@
 
 # Synopsis: Deploy to user profile dir
     task Deploy     {
-        Invoke-PSDeploy -tags currentUser -force
-        sudo Invoke-PSDeploy -tags allUsers -force
+        Invoke-PSDeploy -tags CurrentUser -force
+        sudo Invoke-PSDeploy -tags AllUsers -force
     }

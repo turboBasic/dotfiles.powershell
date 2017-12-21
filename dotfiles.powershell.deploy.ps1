@@ -24,9 +24,9 @@ Deploy Profiles {
     }
 
     By Filesystem AllUsers {
-        FromSource  artifacts\allUsers\profile.ps1,
-                    artifacts\allUsers\Microsoft.PowerShell_profile.ps1,
-                    artifacts\allUsers\Microsoft.PowerShellISE_profile.ps1
+        FromSource  $artifactsDir\allUsers\profile.ps1,
+                    $artifactsDir\allUsers\Microsoft.PowerShell_profile.ps1,
+                    $artifactsDir\allUsers\Microsoft.PowerShellISE_profile.ps1
         To          ${psHome}
         Tagged      AllUsers
     }
